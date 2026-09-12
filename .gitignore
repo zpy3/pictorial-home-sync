@@ -1,0 +1,9 @@
+.DS_Store
+Thumbs.db
+*.log
+helper-app/out/
+helper-app/bin/
+helper-app/gen/
+helper-app/debug.keystore
+*.iml
+.idea/
