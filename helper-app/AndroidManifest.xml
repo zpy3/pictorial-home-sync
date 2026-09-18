@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.local.pictorialhomesync"
-    android:versionCode="2"
-    android:versionName="1.1">
+    android:versionCode="3"
+    android:versionName="1.2">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <application android:label="乐划桌面同步" android:allowBackup="false" android:forceQueryable="true">
@@ -10,7 +10,9 @@
             android:name=".SetActivity"
             android:exported="true"
             android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.NoDisplay"
+            android:showWhenLocked="true"
+            android:turnScreenOn="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:taskAffinity="">
             <intent-filter>
                 <action android:name="com.local.pictorialhomesync.SET" />

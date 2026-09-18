@@ -1,6 +1,10 @@
 #!/system/bin/sh
 SKIPUNMOUNT=1
-ui_print "- 乐划锁屏桌面同步 v1.0.3"
+
+# 安装日志版本以 module.prop 为准，避免写死旧号
+MODVER=$(grep '^version=' "$MODPATH/module.prop" 2>/dev/null | cut -d= -f2)
+[ -n "$MODVER" ] || MODVER=v1.0.5
+ui_print "- 乐划锁屏桌面同步 $MODVER"
 ui_print "- 适用于真我/OPPO/一加 (com.heytap.pictorial)"
 
 # permissions
@@ -12,6 +16,7 @@ set_perm $MODPATH/common/handler.sh 0 0 0755
 set_perm $MODPATH/common/daemon.sh 0 0 0755
 set_perm $MODPATH/common/lib.sh 0 0 0755
 set_perm $MODPATH/common/watchdog.sh 0 0 0755
+set_perm $MODPATH/common/boot.sh 0 0 0755
 set_perm $MODPATH/common/pictorial-home-sync.apk 0 0 0644
 set_perm $MODPATH/action.png 0 0 0644
 mkdir -p $MODPATH/config

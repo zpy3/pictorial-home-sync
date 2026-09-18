@@ -2,8 +2,11 @@
 PHS_PKG=com.local.pictorialhomesync
 PHS_SRC=/data/user_de/0/com.android.systemui/files/wallpaper/pictorialWallpaperCache.dat
 PHS_APPFILE=/data/data/com.local.pictorialhomesync/files/wall.jpg
+PHS_OK=/data/data/com.local.pictorialhomesync/files/last_ok
+PHS_FAIL=/data/data/com.local.pictorialhomesync/files/last_fail
 PHS_STATE=/data/local/tmp/pictorial_home_sync.last
 PHS_LOCK=/data/local/tmp/pictorial_home_sync.lock
+PHS_PENDING=/data/local/tmp/pictorial_home_sync.pending
 PHS_LOG=/data/local/tmp/pictorial_home_sync.log
 PHS_PID=/data/local/tmp/pictorial_home_sync.pid
 PHS_RUN=/data/local/tmp/pictorial_home_sync.run
@@ -104,33 +107,114 @@ phs_kill_daemons() {
         /data/adb/service.d/pictorial_home_sync_handler.sh 2>/dev/null
 }
 
+# Wait until pictorial cache stops changing (large writes while screen-off).
+phs_stable_md5() {
+  prev=""
+  i=0
+  while [ $i -lt 10 ]; do
+    [ -s "$PHS_SRC" ] || return 1
+    cur=$(md5sum "$PHS_SRC" 2>/dev/null | awk '{print $1}')
+    [ -n "$cur" ] || return 1
+    if [ -n "$prev" ] && [ "$cur" = "$prev" ]; then
+      echo "$cur"
+      return 0
+    fi
+    prev=$cur
+    phs_sleep 0.35
+    i=$((i + 1))
+  done
+  [ -n "$prev" ] && echo "$prev" && return 0
+  return 1
+}
+
+phs_launch_setter() {
+  md5="$1"
+  # NEW_TASK; try a few launch styles — ColorOS may block background starts while off
+  am start --user 0 -f 0x10000000 -n $PHS_PKG/.SetActivity \
+    --es path "$PHS_APPFILE" --es md5 "$md5" >/dev/null 2>&1 && return 0
+  am start --user 0 -n $PHS_PKG/.SetActivity \
+    --es path "$PHS_APPFILE" --es md5 "$md5" >/dev/null 2>&1 && return 0
+  # Android 14+ / some OEM builds
+  am start --user 0 --allow-background-activity-starts -n $PHS_PKG/.SetActivity \
+    --es path "$PHS_APPFILE" --es md5 "$md5" >/dev/null 2>&1 && return 0
+  return 1
+}
+
+phs_wait_ok() {
+  md5="$1"
+  n=0
+  while [ $n -lt 12 ]; do
+    ok=$(cat "$PHS_OK" 2>/dev/null | tr -d '\r\n')
+    [ "$ok" = "$md5" ] && return 0
+    phs_sleep 0.25
+    n=$((n + 1))
+  done
+  return 1
+}
+
 phs_sync_once() {
   [ -s "$PHS_SRC" ] || return 1
   if [ -z "$PHS_FORCE" ] && [ -f "$PHS_LOCK" ]; then
     old=$(cat "$PHS_LOCK" 2>/dev/null); now=$(date +%s)
-    [ -n "$old" ] && [ $((now - old)) -lt 8 ] && return 0
+    # Overlapping inotify storm: mark pending so watchdog retries after lock
+    if [ -n "$old" ] && [ $((now - old)) -lt 15 ]; then
+      echo 1 > "$PHS_PENDING"
+      return 0
+    fi
   fi
   date +%s > "$PHS_LOCK"
-  phs_sleep 0.25
-  cur=$(md5sum "$PHS_SRC" 2>/dev/null | awk '{print $1}')
+
+  cur=$(phs_stable_md5) || { rm -f "$PHS_LOCK"; return 1; }
   last=$(cat "$PHS_STATE" 2>/dev/null)
   if [ -z "$PHS_FORCE" ] && [ -n "$cur" ] && [ "$cur" = "$last" ]; then
-    rm -f "$PHS_LOCK"
+    rm -f "$PHS_LOCK" "$PHS_PENDING"
     return 0
   fi
-  [ -n "$cur" ] || { rm -f "$PHS_LOCK"; return 1; }
 
   phs_ensure_apk
   mkdir -p /data/data/$PHS_PKG/files
-  cp -f "$PHS_SRC" "$PHS_APPFILE" || { rm -f "$PHS_LOCK"; return 1; }
+  # Re-copy after stable hash; verify copy matches
+  cp -f "$PHS_SRC" "$PHS_APPFILE" || { echo 1 > "$PHS_PENDING"; rm -f "$PHS_LOCK"; return 1; }
+  copy=$(md5sum "$PHS_APPFILE" 2>/dev/null | awk '{print $1}')
+  if [ "$copy" != "$cur" ]; then
+    # Source changed while copying — pending retry
+    phs_log "copy race cur=$cur copy=$copy"
+    echo 1 > "$PHS_PENDING"
+    rm -f "$PHS_LOCK"
+    return 1
+  fi
   APPUID=$(stat -c %u /data/data/$PHS_PKG 2>/dev/null)
-  [ -n "$APPUID" ] && chown ${APPUID}:${APPUID} /data/data/$PHS_PKG/files "$PHS_APPFILE"
+  [ -n "$APPUID" ] && chown ${APPUID}:${APPUID} /data/data/$PHS_PKG/files "$PHS_APPFILE" "$PHS_OK" "$PHS_FAIL" 2>/dev/null
   chmod 600 "$PHS_APPFILE"
-  # never block Magisk action on am
-  am start --user 0 -n $PHS_PKG/.SetActivity --es path "$PHS_APPFILE" >/dev/null 2>&1 &
-  echo "$cur" > "$PHS_STATE"
-  phs_log "synced${PHS_FORCE:+(force)} $cur"
+  rm -f "$PHS_OK" "$PHS_FAIL"
+
+  # Retry launcher — screen-off / Doze often drops the first am start
+  ok=0
+  attempt=1
+  while [ $attempt -le 6 ]; do
+    phs_launch_setter "$cur"
+    if phs_wait_ok "$cur"; then
+      ok=1
+      break
+    fi
+    phs_log "am retry $attempt md5=$cur"
+    phs_sleep 1
+    attempt=$((attempt + 1))
+  done
+
+  if [ "$ok" = "1" ]; then
+    echo "$cur" > "$PHS_STATE"
+    rm -f "$PHS_PENDING"
+    phs_log "synced${PHS_FORCE:+(force)} $cur"
+    rm -f "$PHS_LOCK"
+    return 0
+  fi
+
+  # Do NOT write STATE — otherwise we never retry while src hash stays the same
+  echo 1 > "$PHS_PENDING"
+  phs_log "sync pending (am/set failed) $cur"
   rm -f "$PHS_LOCK"
+  return 1
 }
 
 # Escape Magisk Alpha action mount-ns into init's, then setsid.
