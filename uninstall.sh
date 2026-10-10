@@ -40,13 +40,26 @@ rm -rf /data/local/tmp/pictorial_home_sync.wm_lock 2>/dev/null
 rm -f /data/local/tmp/phs_wall.jpg 2>/dev/null
 
 # 辅助 App（WallpaperManager）
-pm uninstall --user 0 com.local.pictorialhomesync >/dev/null 2>&1
-pm uninstall com.local.pictorialhomesync >/dev/null 2>&1
-rm -rf /data/data/com.local.pictorialhomesync \
-       /data/user/0/com.local.pictorialhomesync \
-       /data/user_de/0/com.local.pictorialhomesync 2>/dev/null
+# Magisk 卸载环境 PATH 常不含 pm，必须用绝对路径
+PKG=com.local.pictorialhomesync
+export PATH=/system/bin:/system/xbin:/product/bin:/vendor/bin:$PATH
+if command -v pm >/dev/null 2>&1; then
+  pm uninstall --user 0 "$PKG" >/dev/null 2>&1
+  pm uninstall "$PKG" >/dev/null 2>&1
+fi
+/system/bin/pm uninstall --user 0 "$PKG" >/dev/null 2>&1
+/system/bin/pm uninstall "$PKG" >/dev/null 2>&1
+cmd package uninstall --user 0 "$PKG" >/dev/null 2>&1
 
-# 模块目录若仍在（部分 Magisk 先跑脚本再删）
-# 勿在此 rm MODDIR 自身，交给 Magisk
+# 兜底：直接删包与数据（pm 成功后 ColorOS 有时仍留 data 目录）
+rm -rf /data/data/$PKG \
+       /data/user/0/$PKG \
+       /data/user_de/0/$PKG 2>/dev/null
+for d in /data/app/*$PKG* /data/app/*/*$PKG*; do
+  [ -e "$d" ] && rm -rf "$d" 2>/dev/null
+done
+[ -d /data/data/$PKG ] && rm -rf /data/data/$PKG
+[ -d /data/user/0/$PKG ] && rm -rf /data/user/0/$PKG
 
+# 勿在此 rm MODDIR，交给 Magisk
 exit 0
