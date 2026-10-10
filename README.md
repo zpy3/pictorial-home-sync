@@ -17,4 +17,13 @@ Magisk 模块：将真我 / OPPO / 一加「乐划锁屏」换图同步到桌面
 
 ## 版本
 
-当前：v1.0.5
+当前：v1.3.1
+
+## ColorOS 17 说明
+
+ColorOS 17 起，乐划换图不再稳定写入 SystemUI 的 `pictorialWallpaperCache.dat`。
+模块跟随乐划状态：
+- 灭屏 / 亮屏当下：同步 `next_light`（你亮屏时看到的锁频图），并记为 HOLD
+- 解锁后 `next_light` 变成再下一张时：冻结 HOLD，桌面保持刚看过的锁频图
+- 下次灭屏：再预同步新的 `next_light`
+- 锁频内滑动：`show_num` 变化且 `next_light` 未变时跟滑

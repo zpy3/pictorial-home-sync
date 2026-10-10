@@ -1,6 +1,6 @@
 #!/system/bin/sh
 # Shell watchdog in init mnt ns — recovers daemon if Magisk action reaps it.
-# Not app-side su.
+# Does NOT apply wallpapers itself (avoids racing daemon with stale show ids).
 MODDIR="${MODDIR:-/data/adb/modules/pictorial_home_sync}"
 [ -f "$MODDIR/module.prop" ] || MODDIR=/data/adb/modules/pictorial_home_sync
 . "$MODDIR/common/lib.sh"
@@ -11,6 +11,12 @@ phs_log "watchdog start pid=$$ ppid=$PPID"
 while true; do
   phs_sleep 12
   [ "$(cat "$MODDIR/config/enabled" 2>/dev/null)" = "1" ] || continue
+
+  # Only nudge pending retries; show-change sync belongs to daemon
+  if [ -f "$PHS_PENDING" ] && phs_daemon_alive >/dev/null; then
+    :
+  fi
+
   if phs_daemon_alive >/dev/null; then
     continue
   fi

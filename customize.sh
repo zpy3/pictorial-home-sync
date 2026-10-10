@@ -3,7 +3,7 @@ SKIPUNMOUNT=1
 
 # 安装日志版本以 module.prop 为准，避免写死旧号
 MODVER=$(grep '^version=' "$MODPATH/module.prop" 2>/dev/null | cut -d= -f2)
-[ -n "$MODVER" ] || MODVER=v1.0.5
+[ -n "$MODVER" ] || MODVER=v1.1.3
 ui_print "- 乐划锁屏桌面同步 $MODVER"
 ui_print "- 适用于真我/OPPO/一加 (com.heytap.pictorial)"
 

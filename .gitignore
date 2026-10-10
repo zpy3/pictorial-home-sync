@@ -5,5 +5,7 @@ helper-app/out/
 helper-app/bin/
 helper-app/gen/
 helper-app/debug.keystore
+helper-app/*.apk.idsig
+_q2.sh
 *.iml
 .idea/

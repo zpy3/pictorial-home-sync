@@ -1,7 +1,7 @@
 id=pictorial_home_sync
 name=乐划锁屏桌面同步
-version=v1.0.5
-versionCode=105
+version=v1.3.1
+versionCode=131
 author=封刀隱
-description=将真我/OPPO/一加「乐划锁屏」换图同步到桌面壁纸。点左下角操作按钮可开关同步。
+description=将真我/OPPO/一加「乐划锁屏」换图同步到桌面。只跟pictorial_file_uri当前图；灭屏同步避免解锁动画。兼容 ColorOS 17。
 actionIcon=action.png

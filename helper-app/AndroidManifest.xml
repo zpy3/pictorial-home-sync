@@ -1,23 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.local.pictorialhomesync"
-    android:versionCode="3"
-    android:versionName="1.2">
+    android:versionCode="10"
+    android:versionName="1.9">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <application android:label="乐划桌面同步" android:allowBackup="false" android:forceQueryable="true">
+        <provider
+            android:name=".SetProvider"
+            android:authorities="com.local.pictorialhomesync.set"
+            android:exported="true"
+            android:directBootAware="true" />
+        <receiver
+            android:name=".SetReceiver"
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter>
+                <action android:name="com.local.pictorialhomesync.SET" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".SetService"
+            android:exported="true"
+            android:directBootAware="true" />
         <activity
             android:name=".SetActivity"
             android:exported="true"
             android:excludeFromRecents="true"
+            android:noHistory="true"
             android:showWhenLocked="true"
             android:turnScreenOn="false"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:taskAffinity="">
-            <intent-filter>
-                <action android:name="com.local.pictorialhomesync.SET" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
+            android:theme="@android:style/Theme.NoDisplay"
+            android:taskAffinity="" />
     </application>
 </manifest>

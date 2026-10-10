@@ -34,7 +34,7 @@ else
   fi
   rm -f "$PHS_STATE"
   if phs_start_daemon; then
-    PHS_FORCE=1 phs_sync_once
+    PHS_FORCE=1 phs_sync_catchup
     phs_log "enabled by action button"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━"
@@ -44,7 +44,7 @@ else
     echo "乐划锁屏换图时，桌面壁纸将同步更换"
     echo ""
   else
-    PHS_FORCE=1 phs_sync_once
+    PHS_FORCE=1 phs_sync_catchup
     phs_log "enabled by action (watchdog armed)"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━"

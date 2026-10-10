@@ -43,7 +43,7 @@ fi
 
 # Start (and let watchdog keep it alive)
 if phs_start_daemon; then
-  PHS_FORCE=1 phs_sync_once
+  PHS_FORCE=1 phs_sync_catchup
   phs_log "boot: daemon started"
 else
   phs_log "boot: start failed, watchdog armed"

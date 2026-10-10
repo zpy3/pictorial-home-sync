@@ -6,4 +6,4 @@ MODDIR=$(dirname "$COMMON")
 . "$MODDIR/common/lib.sh"
 export MODDIR
 [ "$(cat "$MODDIR/config/enabled" 2>/dev/null)" = "1" ] || exit 0
-phs_sync_once
+phs_sync_catchup
